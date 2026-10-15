@@ -98,13 +98,13 @@ def test_gnomad_filter_both_ends(tmp_path):
     either = run_filter(tmp_path, [("chr1", 995, 1005)])
     assert "del_in" not in either  # default: one end is enough to drop
 
-    both = run_filter(tmp_path, [("chr1", 995, 1005)], both_ends=True)
+    both = run_filter(tmp_path, [("chr1", 995, 1005)], both_ends=True, pad=0)
     assert "del_in" in both  # both_ends: a single overlapping end is not enough
 
 
 def test_gnomad_filter_pad(tmp_path):
     # region [5015,5025) does not touch del_out (end2=5009) without padding
-    no_pad = run_filter(tmp_path, [("chr1", 5015, 5025)])
+    no_pad = run_filter(tmp_path, [("chr1", 5015, 5025)], pad=0)
     assert "del_out" in no_pad
 
     padded = run_filter(tmp_path, [("chr1", 5015, 5025)], pad=20)

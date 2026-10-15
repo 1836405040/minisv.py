@@ -113,3 +113,14 @@ def export_events(source, output):
         raise click.ClickException(str(error)) from error
 
 
+
+
+@cli.command('structural')
+@click.option('--manifest', '-m', required=True, type=click.Path(exists=True,path_type=Path))
+@click.option('--output', '-o', required=True, type=click.Path(path_type=Path))
+@click.option('--workers', default=8, type=click.IntRange(min=1), show_default=True)
+@click.option('--rate', default=.08, type=click.FloatRange(min=0,max=1,min_open=True,max_open=True))
+def structural_review(manifest, output, workers, rate):
+    """Review INV/DUP/BND junctions from caller VCFs and indexed trio BAMs."""
+    from .trio_structural import run_manifest
+    click.echo(json.dumps(run_manifest(manifest,output,workers,rate)))

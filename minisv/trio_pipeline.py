@@ -274,8 +274,12 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
         c3_only = review_c3_only(json.loads((out/'discovery'/'c3_evidence.json').read_text()),
                                  config,children,rate,workers,out)
         reviewed.extend(c3_only)
+        from .trio_structural import review_pending
+        state(out,'STRUCTURAL_JUNCTION_REVIEW',records=len(pending_records))
+        structural = review_pending(pending_records,config,workers,out,rate)
+        reviewed.extend(structural)
         for event in reviewed:
-            event['variant_class'] = 'de_novo_SV' if abs(event['delta']) >= 50 else 'de_novo_indel'
+            event['variant_class'] = 'de_novo_SV' if event['type'] in ('INV','DUP','BND') or abs(event['delta']) >= 50 else 'de_novo_indel'
         with (out/'strict_reviewed.jsonl').open('w') as target:
             for event in reviewed:
                 target.write(json.dumps(event)+'\n')
@@ -298,7 +302,8 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
         with (out/'all_reviewed.jsonl').open('w') as target:
             for event in reviewed:
                 target.write(json.dumps(event)+'\n')
-        summary = dict(structural_pending_records=len(pending_records),
+        summary = dict(structural_reviewed_events=len(structural),
+                       structural_pending_records=len(pending_records),
                        structural_pending_types=dict(Counter(e['type'] for e in pending_records)),
                        rule_pass_events=len(selected),c3_only_reviewed=len(c3_only),
                        tiers=dict(Counter(e['tier'] for e in reviewed)),

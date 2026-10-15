@@ -17,7 +17,7 @@ def record(typ, extra='', alt=None):
 
 
 @pytest.mark.parametrize('typ', ['INV', 'DUP', 'DEL'])
-@pytest.mark.parametrize('length', ['', ';SVLEN=0'])
+@pytest.mark.parametrize('length', ['', ';SVLEN=0', ';SVLEN=.'])
 def test_end_only_intervals_survive_core_parser(tmp_path, typ, length):
     path = tmp_path/'input.vcf'
     path.write_text(HEADER+record(typ, ';END=1050'+length))
@@ -65,7 +65,7 @@ def test_mixed_cached_pipeline_reports_pending_without_promoting(tmp_path):
     summary = run(manifest, tmp_path/'result', workers=1)
     assert summary['structural_pending_records'] == 2
     assert summary['structural_pending_types'] == {'INV':1,'BND':1}
-    assert summary['tiers'] == {'HIGH_CONFIDENCE_CANDIDATE':1}
+    assert summary['tiers'] == {'HIGH_CONFIDENCE_CANDIDATE':1, 'INSUFFICIENT_OR_CONFLICTING_EVIDENCE':2}
     assert len((tmp_path/'result/structural_pending.jsonl').read_text().splitlines()) == 2
 
 

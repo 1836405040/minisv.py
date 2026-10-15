@@ -241,7 +241,7 @@ def gc_parse_sv(file_path, min_read_len, min_count: int, ignore_flt: bool, check
             inv = True
             
         m = re.findall(r"\bSVLEN=([^\s;]+)", info)
-        if len(m) > 0:
+        if len(m) > 0 and m[0] != ".":
             svlen = int(m[0])
 
         # parse read count

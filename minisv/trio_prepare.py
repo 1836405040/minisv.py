@@ -38,6 +38,8 @@ def prepare_candidates(child, config, output):
     with combined.open('w') as target, (output / 'candidate_preparation_audit.jsonl').open('w') as audit:
         target.write('##fileformat=VCFv4.2\n')
         target.writelines(headers.values())
+        if ('##INFO', 'MINISV_ORIGINAL_ID') not in headers:
+            target.write('##INFO=<ID=MINISV_ORIGINAL_ID,Number=1,Type=String,Description="Original caller record ID for mate links">\n')
         target.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n')
         for index, path in enumerate(paths):
             count = 0
@@ -59,6 +61,7 @@ def prepare_candidates(child, config, output):
                     if reason:
                         continue
                     fields = fields[:8]
+                    fields[7] += ';MINISV_ORIGINAL_ID=' + fields[2]
                     fields[2] = f'SOURCE{index}.{count + 1}.{fields[2]}'
                     target.write('\t'.join(fields) + '\n')
                     count += 1

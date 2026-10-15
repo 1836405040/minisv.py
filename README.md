@@ -490,16 +490,11 @@ minisv sv-trio-filter --mm2 minimap2 --mg minigraph --vcf test.vcf --readid_tsv 
 
 ## Structural candidate routing
 
-Interval DEL/DUP/INV records with missing or zero SVLEN use END minus POS before
-size filtering. BND records do not require an artificial indel length. Preparation
-records each original input and its disposition in candidate_preparation_audit.jsonl.
+Interval DEL/DUP/INV records with missing, dot or zero SVLEN use END minus POS
+before size filtering. BND records do not require an artificial indel length.
+Candidate preparation records original IDs and all retention/exclusion reasons.
 
-Final review currently supports INS/DEL. Other structural records are retained in
-structural_pending.jsonl, including cached C3 inputs, with source and original VCF
-record. Summary counts describe pending records, not deduplicated events. These
-are neither biological negatives nor high-confidence de novo calls. Unsupported
-TRA encodings are audited explicitly rather than converted to unverified BND pairs.
-
-Inversion review still requires oriented junction evidence, duplication review
-requires junction and copy-number evidence, and translocation review requires
-paired breakends. Each model must establish child and parental callability.
+The pipeline sends INV/DUP/BND to an experimental sequence-junction review,
+independently of the INS/DEL C3 projection. Both fresh and cached inputs retain
+structural records. See [the structural workflow](docs/STRUCTURAL.md) for the
+standalone command, evidence thresholds and output interpretation.
