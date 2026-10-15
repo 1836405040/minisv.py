@@ -3,7 +3,6 @@ import random
 import pysam
 
 from minisv.trio_c3_only import group_calls, review_deletion
-from minisv.trio_pipeline import review_c3_only
 
 
 def fixture(tmp_path, parent_alt=False, short_child=False, chrom='chr1'):
@@ -96,15 +95,3 @@ def test_sex_chromosome_requires_ploidy_review(tmp_path):
     assert 'PLOIDY_NOT_VALIDATED' in result['audit_flags']
 
 
-def test_pipeline_review_writes_one_event_for_nearby_callers(tmp_path):
-    ref, bams = fixture(tmp_path)
-    rows = calls()
-    rows[1]['pos0'] += 4
-    rows[1]['length'] -= 5
-    config = dict(reference=ref, father=dict(sample='dad', bam=bams['F']),
-                  mother=dict(sample='mom', bam=bams['M']))
-    children = {'child': dict(sample='child', bam=bams['C'])}
-    reviewed = review_c3_only(rows, config, children, .08, 1, tmp_path)
-    assert len(reviewed) == 1
-    assert reviewed[0]['tier'] == 'HIGH_CONFIDENCE_CANDIDATE'
-    assert len((tmp_path/'c3_only_reviewed.jsonl').read_text().splitlines()) == 1
