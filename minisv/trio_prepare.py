@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .trio_alleles import build_candidates
+from .trio_types import normalize_record
 
 
 def open_text(path):
@@ -34,7 +35,7 @@ def prepare_candidates(child, config, output):
                     headers.setdefault(key, line.rstrip() + '\n')
     combined = output / 'all_candidates.vcf'
     counts = []
-    with combined.open('w') as target:
+    with combined.open('w') as target, (output / 'candidate_preparation_audit.jsonl').open('w') as audit:
         target.write('##fileformat=VCFv4.2\n')
         target.writelines(headers.values())
         target.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n')
@@ -45,9 +46,17 @@ def prepare_candidates(child, config, output):
                     if line.startswith('#') or not line.strip():
                         continue
                     fields = line.rstrip().split('\t')
-                    info = dict(x.split('=', 1) for x in fields[7].split(';') if '=' in x)
+                    fields, info, length, reason = normalize_record(fields)
                     names = set(info.get('RNAMES', '').split(',')) - {'', '.'}
-                    if fields[6] not in ('PASS', '.') or abs(int(info.get('SVLEN', 0))) < minimum or len(names) < 2:
+                    if fields[6] not in ('PASS', '.'):
+                        reason = 'EXCLUDED_INPUT_FILTER'
+                    elif reason is None and length is not None and length < minimum:
+                        reason = 'BELOW_MINIMUM_LENGTH'
+                    elif reason is None and len(names) < 2:
+                        reason = 'INSUFFICIENT_READ_NAMES'
+                    audit.write(json.dumps(dict(path=str(path), id=fields[2], type=info.get('SVTYPE'),
+                        status=reason or 'RETAINED', original_record=line.rstrip())) + '\n')
+                    if reason:
                         continue
                     fields = fields[:8]
                     fields[2] = f'SOURCE{index}.{count + 1}.{fields[2]}'

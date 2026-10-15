@@ -18,6 +18,7 @@ from .trio_review import assign_tiers, review
 from .trio_c3_only import group_calls, review_deletion
 from .trio_insertion import review_insertion
 from .trio_prepare import prepare_candidates
+from .trio_types import partition_for_review
 from .trio_io import compressed_writer, combine_parents, extract_candidate_reads
 
 
@@ -79,12 +80,20 @@ def review_c3_only(c3, config, children, rate, workers, out):
 
 def run_c3(child, config, out, threads):
     """Reuse explicit evidence or align complete candidate molecules to parents."""
-    if child.get('c3_vcf'):
-        return child['c3_vcf']
+    pending = out/'structural_pending.jsonl'
+    pending.write_text('')
+    normalized = out/'c3_supported_input.vcf'
+    source = child.get('c3_vcf') or child['candidate_vcf']
+    count = partition_for_review(source, normalized, pending)
+    if child.get('c3_vcf') or not count:
+        # Cached evidence must pass the same type routing as fresh candidates.
+        if child.get('c3_vcf') and child.get('candidate_vcf'):
+            partition_for_review(child['candidate_vcf'], out/'candidate_supported_input.vcf', pending)
+        return str(normalized)
     from .cli import EvalOpt,opt
     from .filtercaller import othercaller_filterasm
     from .read_parser import load_reads
-    vcf = child['candidate_vcf']
+    vcf = str(normalized)
     minimum = config.get('minimum_variant_length', 50)
     paf, gsv = child.get('parent_paf'), child.get('parent_gsv')
     if not paf:
@@ -130,6 +139,8 @@ def c3_events(sample,vcf,local_paths):
         catalog.append((parts[0],int(parts[1]),int(parts[2]),data['trid']))
     groups = {}
     for a,info in read_records(vcf):
+        if info.get('SVTYPE') not in ('INS', 'DEL'):
+            raise ValueError('Route structural records through partition_for_review before c3_events')
         names = sorted(set(info.get('RNAMES','').split(','))-{'','.'})
         basis = info.get('DELTA_BASIS',info.get('SVLEN_SOURCE','REFERENCE'))
         key = (a[0],a[1],a[3],a[4],info['SVTYPE'],info['SVLEN'],basis)
@@ -227,6 +238,14 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
             state(out,'C3_FILTER',sample=child['sample'])
             selected = run_c3(child,config,out/child['sample'],workers)
             c3.extend(c3_events(child['sample'],selected,Path(local_dirs[child['sample']]).glob('*.json')))
+        pending_records = []
+        for child in config['children']:
+            path = out/child['sample']/'structural_pending.jsonl'
+            pending_records.extend(dict(json.loads(line), sample=child['sample'])
+                                   for line in path.read_text().splitlines())
+        with (out/'structural_pending.jsonl').open('w') as target:
+            for record in pending_records:
+                target.write(json.dumps(record)+'\n')
         (out/'c3_audit.json').write_text(json.dumps(c3))
         fm = dict(samples=[dict(sample=s,local_directory=p) for s,p in local_dirs.items()],c3_audit=str(out/'c3_audit.json'))
         (out/'finalize_manifest.json').write_text(json.dumps(fm,indent=2))
@@ -279,7 +298,9 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
         with (out/'all_reviewed.jsonl').open('w') as target:
             for event in reviewed:
                 target.write(json.dumps(event)+'\n')
-        summary = dict(rule_pass_events=len(selected),c3_only_reviewed=len(c3_only),
+        summary = dict(structural_pending_records=len(pending_records),
+                       structural_pending_types=dict(Counter(e['type'] for e in pending_records)),
+                       rule_pass_events=len(selected),c3_only_reviewed=len(c3_only),
                        tiers=dict(Counter(e['tier'] for e in reviewed)),
                        per_sample={s:dict(Counter(e['tier'] for e in reviewed if e['sample']==s)) for s in children},
                        flags=dict(Counter(f for e in reviewed for f in e['audit_flags'])),
@@ -296,7 +317,7 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
             '|---|---:|---:|---:|']
         for sample,counts in summary['per_sample'].items():
             report.append(f"|{sample}|{counts.get('HIGH_CONFIDENCE_CANDIDATE',0)}|{counts.get('REVIEW_REQUIRED',0)}|{counts.get('INSUFFICIENT_OR_CONFLICTING_EVIDENCE',0)}|")
-        report += ['', 'All local candidates and C3-only evidence are retained under discovery/.',
+        report += ['', f'Structural records pending type-specific review: {len(pending_records)} (structural_pending.jsonl; record count, not deduplicated events).', 'All local candidates and C3-only evidence are retained under discovery/.',
                    'Parent-relative events are JSON records with full sequences, not reference-relative VCF.',
                    'Prepared caller/TRGT inputs are required; upstream alignment, assembly and callers are not launched by this entry point.',
                    'Nonautosomal ploidy, mosaic likelihood and independent-family validation remain incomplete.']

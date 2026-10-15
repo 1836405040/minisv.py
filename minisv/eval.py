@@ -394,6 +394,12 @@ def gc_parse_sv(file_path, min_read_len, min_count: int, ignore_flt: bool, check
                     if len(m) > 0:
                         svlen = int(m[0])
 
+                # Interval SV callers may provide END without a nonzero SVLEN.
+                # Infer the affected span before applying the size threshold.
+                if svtype in ("DEL", "DUP", "INV") and svlen == 0:
+                    ends = re.findall(r"\bEND=(\d+)", info)
+                    if ends and int(ends[0]) > t[1]:
+                        svlen = int(ends[0]) - t[1]
                 if svtype != "BND" and abs(svlen) < min_read_len:
                     continue  # too short
 
