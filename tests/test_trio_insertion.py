@@ -1,13 +1,14 @@
 import random
 
 import pysam
+import pytest
 
 from minisv.trio_insertion import project_target, review_insertion
 
 
-def fixture(tmp_path, parent_target=False, father_snp=False, neighbor=False):
+def fixture(tmp_path, parent_target=False, father_snp=False, neighbor=False, length=34):
     seq = ''.join(random.Random(4).choices('ACGT',k=1000))
-    ins = 'ACGTTGCAACGTTGCAACGTTGCAACGTTGCAAC'
+    ins = ('ACGTTGCA'*7)[:length]
     ref = tmp_path/'ref.fa'
     ref.write_text('>chr1\n'+seq+'\n')
     pysam.faidx(str(ref))
@@ -80,13 +81,21 @@ def test_parent_neighbor_is_not_the_target(tmp_path):
     assert result['flank_recheck']['F']['target'] == 0
 
 
-def test_symbolic_insertion_and_33_bp_rejected(tmp_path):
+def test_symbolic_insertion_and_29_bp_rejected(tmp_path):
     job = list(fixture(tmp_path))
     job[0]['alt'] = '<INS>'
     assert review_insertion(job)['tier'] == 'INSUFFICIENT_OR_CONFLICTING_EVIDENCE'
-    job[0]['alt'] = job[0]['ref']+'A'*33
-    job[0]['length'] = 33
+    job[0]['alt'] = job[0]['ref']+'A'*29
+    job[0]['length'] = 29
     assert review_insertion(job)['tier'] == 'INSUFFICIENT_OR_CONFLICTING_EVIDENCE'
+
+
+@pytest.mark.parametrize('length', [30, 33, 49, 50])
+def test_indel_sv_boundary_with_actual_bam_molecules(tmp_path, length):
+    result=review_insertion(fixture(tmp_path,length=length))
+    assert result['tier']=='HIGH_CONFIDENCE_CANDIDATE'
+    assert result['delta']==length
+    assert result['variant_class']==('de_novo_indel' if length<50 else 'de_novo_SV')
 
 
 def test_assembly_projection_rejects_gap_boundary_and_invalid_span():
