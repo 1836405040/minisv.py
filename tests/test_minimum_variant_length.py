@@ -1,6 +1,6 @@
 import json
 
-from test_trio_finalize import fixture
+from tests.test_trio_finalize import fixture
 from minisv.trio_finalize import classify, process_locus
 from minisv.trio_prepare import prepare_candidates
 from minisv.trio_pipeline import read_records

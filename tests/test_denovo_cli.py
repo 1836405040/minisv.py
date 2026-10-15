@@ -3,7 +3,7 @@ from click.testing import CliRunner
 
 from minisv.cli import cli as minisv_cli
 cli = minisv_cli.commands['denovo']
-from test_trio_pipeline import fixture_files
+from tests.test_trio_pipeline import fixture_files
 
 
 def test_public_commands_and_identity():
