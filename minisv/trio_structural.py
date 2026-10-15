@@ -1,7 +1,7 @@
 """Orientation-aware, sequence-based structural junction review.
 
-This experimental reviewer never promotes a structural event to high confidence:
-independent positive controls and parental haplotype validation are still required.
+Default audit mode retains experimental classifications. Optional strict_v1
+adds split topology, phased parental callability and duplication dosage gates.
 Coordinates are zero-based interbase positions; L/R names the retained reference side.
 """
 import hashlib
@@ -102,7 +102,8 @@ def molecule_evidence(bam, pair, alt, refs, rate, flank=200):
 
 
 def review_structural(job):
-    event, reference, bams, rate = job
+    event, reference, bams, rate = job[:4]
+    policy = job[4] if len(job)>4 else 'audit'
     event = dict(event, junction_evidence=[], audit_flags=list(event['audit_flags']))
     flags = event['audit_flags']
     try:
@@ -137,7 +138,8 @@ def review_structural(job):
         else 'INSUFFICIENT_OR_CONFLICTING_EVIDENCE')
     event['junction_support_reproduced'] = bool(event['junction_evidence']) and all(
         j['support']['C']['alt_specific'] >= 3 for j in event['junction_evidence'])
-    return event
+    from .trio_structural_confidence import assess
+    return assess(event,bams,policy)
 
 
 def structural_events(records, family_id, minimum=50):
@@ -209,7 +211,7 @@ def review_pending(records, config, workers, out, rate=.08):
     events = retained
     children = {c['sample']:c for c in config['children']}
     jobs = [(e,config['reference'],dict(C=children[e['sample']]['bam'],
-        F=config['father']['bam'],M=config['mother']['bam']),rate) for e in events]
+        F=config['father']['bam'],M=config['mother']['bam']),rate,config.get('structural_confidence_policy','audit')) for e in events]
     with ProcessPoolExecutor(max_workers=workers) as pool:
         reviewed = list(pool.map(review_structural,jobs))
     # Shared junctions in siblings are retained as a transmission/mosaicism flag.
