@@ -19,3 +19,9 @@ Modules: `trio_locus.py`, `trio_io.py`.
 Branch: `feature/03-local-alleles`. Depends on `feature/02-read-locus`.
 
 Modules: `trio_local.py`, `trio_finalize.py`, `trio_review.py`.
+
+## F04: Concrete deletion and insertion template review
+
+Branch: `feature/04-event-templates`. Depends on `feature/03-local-alleles`.
+
+Modules: `trio_c3_only.py`, `trio_insertion.py`.
