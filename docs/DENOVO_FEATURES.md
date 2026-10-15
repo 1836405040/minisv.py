@@ -25,3 +25,9 @@ Modules: `trio_local.py`, `trio_finalize.py`, `trio_review.py`.
 Branch: `feature/04-event-templates`. Depends on `feature/03-local-alleles`.
 
 Modules: `trio_c3_only.py`, `trio_insertion.py`.
+
+## F05: Marker-assisted parental readability fallback
+
+Branch: `feature/05-marker-readability`. Depends on `feature/04-event-templates`.
+
+Modules: `trio_phase_review.py`.
