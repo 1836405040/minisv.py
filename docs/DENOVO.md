@@ -39,3 +39,7 @@ half-open in event JSON; insertion boundaries have start=end.
 Unit and integration tests run separately in GitHub Actions. Integration tests
 generate synthetic BAM/FASTA/VCF data and execute actual minimap2 alignment.
 No patient data or truth coordinates are required for discovery.
+
+INV/DUP/BND use the [structural junction review](STRUCTURAL.md), with separate
+outputs and explicit unresolved reasons. Use original caller VCFs when older
+preparation steps removed these types.

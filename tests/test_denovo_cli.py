@@ -8,7 +8,7 @@ from tests.test_trio_pipeline import fixture_files
 
 def test_public_commands_and_identity():
     assert set(cli.commands) == {'init','check','run','export','candidates','locus-filter',
-                                 'local-compare','finalize'}
+                                 'local-compare','finalize','structural'}
     result=CliRunner().invoke(cli,['--version'])
     assert result.exit_code == 0
     assert 'minisv denovo' in result.output

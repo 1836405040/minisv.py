@@ -5,6 +5,9 @@ def normalize_record(fields):
     fields = list(fields)
     info = dict(x.split('=', 1) for x in fields[7].split(';') if '=' in x)
     typ = info.get('SVTYPE', '').upper()
+    if typ in ('', '.'):
+        alt = fields[4]
+        typ = 'BND' if '[' in alt or ']' in alt else alt.strip('<>').upper()
     info['SVTYPE'] = typ
     if typ == 'TRA':
         # Preserve the original representation; a TRA alias alone does not
@@ -13,9 +16,12 @@ def normalize_record(fields):
     if typ not in ('INS', 'DEL', 'INV', 'DUP', 'BND'):
         return fields, info, None, 'UNSUPPORTED_SVTYPE'
     if typ == 'BND':
+        flags = [x for x in fields[7].split(';') if x and '=' not in x]
+        fields[7] = ';'.join(flags + [f'{k}={v}' for k,v in info.items()])
         return fields, info, None, None
     try:
-        length = int(info.get('SVLEN', 0))
+        raw_length = info.get('SVLEN', '0')
+        length = 0 if raw_length == '.' else int(raw_length)
         if not length and typ in ('DEL', 'DUP', 'INV'):
             length = int(info.get('END', fields[1])) - int(fields[1])
             if length <= 0:
