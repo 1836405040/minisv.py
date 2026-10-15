@@ -487,3 +487,19 @@ minisv sv-trio-filter --mm2 minimap2 --mg minigraph --vcf test.vcf --readid_tsv 
 [mm2]: https://github.com/lh3/minimap2
 [hifiasm]: https://github.com/chhylp123/hifiasm
 [gnomad-sv]: https://gnomad.broadinstitute.org/downloads#v4-structural-variants
+
+## Structural candidate routing
+
+Interval DEL/DUP/INV records with missing or zero SVLEN use END minus POS before
+size filtering. BND records do not require an artificial indel length. Preparation
+records each original input and its disposition in candidate_preparation_audit.jsonl.
+
+Final review currently supports INS/DEL. Other structural records are retained in
+structural_pending.jsonl, including cached C3 inputs, with source and original VCF
+record. Summary counts describe pending records, not deduplicated events. These
+are neither biological negatives nor high-confidence de novo calls. Unsupported
+TRA encodings are audited explicitly rather than converted to unverified BND pairs.
+
+Inversion review still requires oriented junction evidence, duplication review
+requires junction and copy-number evidence, and translocation review requires
+paired breakends. Each model must establish child and parental callability.
