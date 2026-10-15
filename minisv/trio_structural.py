@@ -219,7 +219,9 @@ def review_pending(records, config, workers, out, rate=.08):
         if any(other['sample'] != event['sample'] and other['junctions'] == event['junctions'] for other in reviewed):
             event['audit_flags'] = sorted(set(event['audit_flags']+['JUNCTION_SHARED_WITH_SIBLING']))
             event['tier'] = 'INSUFFICIENT_OR_CONFLICTING_EVIDENCE'
-    for name, rows in [('structural_reviewed.jsonl',reviewed),('structural_unresolved.jsonl',unresolved)]:
+            event['structural_confidence']['eligible_high_confidence'] = False
+    for name, rows in [('structural_reviewed.jsonl',reviewed),('structural_unresolved.jsonl',unresolved),
+                       ('parent_topology_reviewed.jsonl',[e['structural_confidence']['parent_topology'] for e in reviewed])]:
         with (Path(out)/name).open('w') as target:
             for row in rows:
                 target.write(json.dumps(row)+'\n')
@@ -268,6 +270,7 @@ def run_manifest(manifest, output, workers=8, rate=.08):
         summary = dict(stage='COMPLETE',input_records=len(records),reviewed_events=len(reviewed),
             tiers=dict(Counter(e['tier'] for e in reviewed)),
             types=dict(Counter(e['type'] for e in reviewed)),
+            parent_topology_classes=dict(Counter(e['structural_confidence']['parent_topology']['classification'] for e in reviewed)),
             child_junction_reproduced=dict(Counter(e['type'] for e in reviewed if e['junction_support_reproduced'])),
             flags=dict(Counter(f for e in reviewed for f in e['audit_flags'])))
         (out/'summary.json').write_text(json.dumps(summary,indent=2))

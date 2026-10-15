@@ -94,3 +94,34 @@ parental HP/PS evidence and dosage windows. Existing parent target support,
 imprecise breakpoints, sibling sharing and non-discriminating sequence never
 become high confidence merely because the added checks pass. Independent real
 positive controls and sensitivity/false-positive calibration remain necessary.
+
+## Structural review v1 workflow contract
+
+The fixed sequence is candidate normalization and scope audit, child junction
+sequence review, child split topology, parental target topology, parental phased
+callability, type-specific dosage/mate checks, sibling conflict review, and final
+classification. These gates are cumulative; a later pass never clears an earlier
+conflict. No truth-guided rescue or automatic investigation of unresolved loci
+is performed by this workflow.
+
+Parental target topology is now part of both `denovo run` and `denovo structural`.
+`parent_topology_reviewed.jsonl` and each event's
+`structural_confidence.parent_topology` preserve read names, matching segments,
+orientation, query gaps and whether support originates from SA tags or actual
+BAM records. Summary files count these classifications:
+
+| Classification | Meaning and action |
+|---|---|
+| PARENT_STRUCTURAL_JUNCTIONS_SUPPORTED | One parent supports every required junction with at least three molecules and both sequence directions; block de novo promotion. |
+| LIMITED_OR_PARTIAL_PARENT_TOPOLOGY | Some topology exists but molecule count, directions or junction completeness are insufficient; unresolved and blocking. |
+| PARENT_SEQUENCE_ONLY_UNRESOLVED | Target sequence support has no matching split topology; unresolved and blocking, not parental absence. |
+| NO_PARENT_TARGET_SEQUENCE_OBSERVED | No target sequence was observed; parental depth and phased callability gates still apply. |
+| INCOMPLETE_PARENT_TOPOLOGY_REVIEW | Required junction evidence is missing; unresolved and blocking. |
+
+The first three categories refine the existing PARENT_TARGET_JUNCTION conflict;
+they do not remove it. Shared parental junctions establish adjacency evidence,
+not complete inversion phasing, duplication dosage inheritance, or a fully
+resolved balanced translocation. Sibling conflicts also invalidate strict
+eligibility. Default `audit` mode remains unchanged; `strict_v1` is opt-in.
+This closes the first version's processing and reporting loop, not independent
+real-positive calibration or all complex-SV discovery.

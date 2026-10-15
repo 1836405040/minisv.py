@@ -303,6 +303,7 @@ def run(manifest,output,workers=16,rate=.08,recompute_local=False):
             for event in reviewed:
                 target.write(json.dumps(event)+'\n')
         summary = dict(structural_reviewed_events=len(structural),
+                       parent_topology_classes=dict(Counter(e['structural_confidence']['parent_topology']['classification'] for e in structural)),
                        structural_pending_records=len(pending_records),
                        structural_pending_types=dict(Counter(e['type'] for e in pending_records)),
                        rule_pass_events=len(selected),c3_only_reviewed=len(c3_only),

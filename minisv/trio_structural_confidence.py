@@ -144,6 +144,12 @@ def assess(event,bams,policy='audit'):
     if event['type']=='BND':
         audit['reciprocal_mates']=reciprocal_mates(event)
         if not audit['reciprocal_mates']: flags.add('BND_MATE_LINK_UNRESOLVED')
+    from .trio_parent_topology import review_parent_topology
+    parent_topology = review_parent_topology(event,bams)
+    classification = parent_topology['classification']
+    if classification != 'NO_PARENT_TARGET_SEQUENCE_OBSERVED':
+        flags.add(classification)
+    audit['parent_topology'] = parent_topology
     audit['eligible_high_confidence']=not flags
     result=dict(event,structural_confidence=audit)
     if policy=='audit': flags.add('STRUCTURAL_MODEL_VALIDATION_REQUIRED')
