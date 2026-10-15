@@ -134,3 +134,19 @@ def test_recompute_local_and_c3_from_prepared_generic_inputs(tmp_path, merge_inp
     assert summary['rule_pass_events']==1
     assert summary['c3_representations']==1
     assert (tmp_path/'fresh/kid/local/chr1_300_400_x.json').exists()
+
+
+def test_pipeline_review_writes_one_event_for_nearby_callers(tmp_path):
+    from tests.test_trio_c3_only import fixture, calls
+    from minisv.trio_pipeline import review_c3_only
+    ref, bams = fixture(tmp_path)
+    rows = calls()
+    rows[1]['pos0'] += 4
+    rows[1]['length'] -= 5
+    config = dict(reference=ref, father=dict(sample='dad', bam=bams['F']),
+                  mother=dict(sample='mom', bam=bams['M']))
+    children = {'child': dict(sample='child', bam=bams['C'])}
+    reviewed = review_c3_only(rows, config, children, .08, 1, tmp_path)
+    assert len(reviewed) == 1
+    assert reviewed[0]['tier'] == 'HIGH_CONFIDENCE_CANDIDATE'
+    assert len((tmp_path/'c3_only_reviewed.jsonl').read_text().splitlines()) == 1
