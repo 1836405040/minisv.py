@@ -97,6 +97,79 @@ def cli(ctx):
     pass
 
 
+@cli.command('trio-run')
+@click.option('--manifest', required=True, type=click.Path(exists=True))
+@click.option('--output', required=True, type=click.Path())
+@click.option('--workers', default=16, type=click.IntRange(min=1))
+@click.option('--error-rate', default=.08, type=click.FloatRange(min=0,max=1,min_open=True,max_open=True))
+@click.option('--recompute-local', is_flag=True)
+def trio_run(manifest, output, workers, error_rate, recompute_local):
+    """Run family candidate filtering, sequence evidence and automatic review."""
+    from .trio_pipeline import run
+    run(manifest,output,workers,error_rate,recompute_local)
+
+
+@cli.command('trio-finalize')
+@click.option('--manifest', required=True, type=click.Path(exists=True))
+@click.option('--output', required=True, type=click.Path())
+@click.option('--error-rate', multiple=True, type=click.FloatRange(min=0, max=1, min_open=True, max_open=True), default=(.05, .06, .08))
+@click.option('--workers', default=16, type=click.IntRange(min=1))
+def trio_finalize(manifest, output, error_rate, workers):
+    """Unify cached full-read trio evidence and C3 audit; emit parent-relative events."""
+    from .trio_finalize import run
+    run(manifest, output, error_rate, workers)
+
+
+@cli.command('trio-local-compare')
+@click.option('--directory', required=True, type=click.Path(exists=True))
+@click.option('--loci', required=True, type=click.Path(exists=True))
+@click.option('--output', required=True, type=click.Path())
+@click.option('--bam-manifest', type=click.Path(exists=True), help='TSV with sample and bam columns for full-read validation')
+def trio_local_compare(directory, loci, output, bam_manifest):
+    """Compare complete TRGT alleles and all parental transmission hypotheses."""
+    from .trio_local import run_loci
+    run_loci(directory, loci, output, bam_manifest)
+
+
+@cli.command('trio-locus-filter')
+@click.option('--vcf', required=True, type=click.Path(exists=True))
+@click.option('--bam', required=True, type=click.Path(exists=True))
+@click.option('--gsv', required=True, type=click.Path(exists=True))
+@click.option('--paf', type=click.Path(exists=True), help='Parent alignment PAF for distinguishing missing evidence from no SV signal')
+@click.option('--output', required=True, type=click.Path())
+@click.option('--audit', required=True, type=click.Path())
+@click.option('--min-count', default=3, type=click.IntRange(min=1))
+@click.option('--flank', default=100, type=click.IntRange(min=0))
+@click.option('--min-mapq', default=20, type=click.IntRange(min=0))
+@click.option('--max-diff', default=50, type=click.IntRange(min=0))
+@click.option('--ratio', default=.6, type=click.FloatRange(min=0, max=1))
+def trio_locus_filter(**kwargs):
+    """Check read-local support; PASS is not a de novo genotype verdict."""
+    from .trio_locus import filter_locus
+    filter_locus(**kwargs)
+
+
+@cli.command('trio-trgt-candidates')
+@click.option('--indexed', is_flag=True, help='Fetch selected loci from an indexed spanning BAM')
+@click.option('--signal', required=True, type=click.Path(exists=True))
+@click.option('--spanning-bam', required=True, type=click.Path(exists=True))
+@click.option('--output', required=True, type=click.Path())
+@click.option('--audit', required=True, type=click.Path())
+@click.option('--minimum', default=50, type=click.IntRange(min=1))
+def trio_trgt_candidates(**kwargs):
+    """Build parental-delta hypotheses without using truth labels."""
+    from .trio_alleles import build_candidates
+    build_candidates(**kwargs)
+
+
+# Add the family workflow while retaining all original top-level commands.
+from .denovo_cli import cli as denovo_group
+for command, name in [(trio_run, 'run'), (trio_trgt_candidates, 'candidates'),
+                      (trio_locus_filter, 'locus-filter'), (trio_local_compare, 'local-compare'),
+                      (trio_finalize, 'finalize')]:
+    denovo_group.add_command(command, name)
+cli.add_command(denovo_group)
+
 #@cli.command()
 #@click.option(
 #    "-i",

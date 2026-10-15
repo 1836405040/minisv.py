@@ -1,3 +1,7 @@
+# Minisv
+
+[Family de novo SV and 30¨C49 bp indel workflow](docs/DENOVO.md)
+
 ## <a name ="start"></a>Getting started
 
 ```sh
