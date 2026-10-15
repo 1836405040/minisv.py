@@ -31,3 +31,9 @@ Modules: `trio_c3_only.py`, `trio_insertion.py`.
 Branch: `feature/05-marker-readability`. Depends on `feature/04-event-templates`.
 
 Modules: `trio_phase_review.py`.
+
+## F06: Manifest-driven SV and indel pipeline
+
+Branch: `feature/06-denovo-pipeline`. Depends on `feature/05-marker-readability`.
+
+Modules: `trio_pipeline.py`, `denovo_cli.py`.
