@@ -62,3 +62,35 @@ events; it does not represent independent de novo confirmation.
 Output directories must be new. Synthetic tests cover orientations, paired BND
 identity, inherited events, missing parent coverage, incomplete inversion support,
 region masks, parser boundaries, gzip, and integrated INS/DEL nonregression.
+
+## Optional strict structural candidate policy
+
+Set `structural_confidence_policy` to `strict_v1` in the manifest to enable the
+new high-confidence candidate gates. The default `audit` mode reports eligibility
+without promoting structural events. Neither mode yields a calibrated posterior
+probability or independent experimental confirmation.
+
+All existing conflict flags remain blocking. In addition:
+
+* Each child junction needs at least 3 sequence-specific molecules with consistent
+  primary/SA split topology and both physical sequence orientations. Each aligned
+  segment needs MAPQ >=20 and at least 100 matched bases. Endpoint differences and
+  read-coordinate junction gaps are each bounded by 50 bp; segment orientations
+  must face the same physical junction and full read lengths must agree.
+* At each parental endpoint, a continuously reference-aligned 400 bp context must
+  have at least 3 reference-specific molecules for each HP=1 and HP=2 within one
+  PS block. Missing HP/PS or partial phase coverage is unresolved, not negative.
+* BND mate links must be reciprocal within the same source and geometry. This
+  establishes a novel adjacency candidate, not an entire balanced translocation.
+* Tandem DUP additionally needs a >=1 kb interval. Five internal 200 bp windows
+  and six flanking 200 bp windows measure MAPQ>=30 primary aligned-base depth.
+  All windows need >=10x, and within each window group max/min depth must be <=1.6.
+  The median internal/flanking ratio must be 1.25–1.8 in the child and 0.8–1.2
+  in each parent. Smaller or dispersed duplications remain unresolved.
+
+These versioned thresholds are conservative candidate heuristics, not calibrated
+copy-number likelihoods. `structural_confidence` retains split-read names,
+parental HP/PS evidence and dosage windows. Existing parent target support,
+imprecise breakpoints, sibling sharing and non-discriminating sequence never
+become high confidence merely because the added checks pass. Independent real
+positive controls and sensitivity/false-positive calibration remain necessary.
