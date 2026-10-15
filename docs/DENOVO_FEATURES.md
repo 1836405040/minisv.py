@@ -13,3 +13,9 @@ Modules: `trio_alleles.py`, `trio_prepare.py`.
 Branch: `feature/02-read-locus`. Depends on `feature/01-trgt-candidates`.
 
 Modules: `trio_locus.py`, `trio_io.py`.
+
+## F03: Complete local allele comparison and strict evidence review
+
+Branch: `feature/03-local-alleles`. Depends on `feature/02-read-locus`.
+
+Modules: `trio_local.py`, `trio_finalize.py`, `trio_review.py`.
